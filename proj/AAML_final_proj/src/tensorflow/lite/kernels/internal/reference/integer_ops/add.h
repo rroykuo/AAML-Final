@@ -47,7 +47,7 @@ inline void ElementWise(
     void (*check_arithmetic_params)(const ArithmeticParams&),
     int8_t (*binary_func)(int8_t, int8_t, const ArithmeticParams&)) {
   CheckArithmeticParams(params);
-  for (int i = 0; i < size; ++i) {
+  for (int i=0; i < size; ++i) {
     output_data[i] = binary_func(input1_data[i], input2_data[i], params);
   }
 }
@@ -90,25 +90,71 @@ inline void BroadcastBinaryFunction4DSlow(
   }
 }
 
+// TODO HERE
 inline int8_t AddFunc(int8_t x, int8_t y, const ArithmeticParams& params) {
-  const int32_t input1_val = params.input1_offset + x;
-  const int32_t input2_val = params.input2_offset + y;
-  const int32_t shifted_input1_val = input1_val * (1 << params.left_shift);
-  const int32_t shifted_input2_val = input2_val * (1 << params.left_shift);
-  const int32_t scaled_input1_val =
-      MultiplyByQuantizedMultiplierSmallerThanOneExp(
-          shifted_input1_val, params.input1_multiplier, params.input1_shift);
-  const int32_t scaled_input2_val =
-      MultiplyByQuantizedMultiplierSmallerThanOneExp(
-          shifted_input2_val, params.input2_multiplier, params.input2_shift);
-  const int32_t raw_sum = scaled_input1_val + scaled_input2_val;
-  const int32_t raw_output =
-      MultiplyByQuantizedMultiplierSmallerThanOneExp(
-          raw_sum, params.output_multiplier, params.output_shift) +
-      params.output_offset;
-  const int32_t clamped_output =
-      std::min(params.quantized_activation_max,
-               std::max(params.quantized_activation_min, raw_output));
+  // const int32_t input1_val = params.input1_offset + x;
+  // const int32_t input2_val = params.input2_offset + y;
+  // const int32_t shifted_input1_val = static_cast<int32_t>(input1_val) * (1 << params.left_shift);
+  // const int32_t shifted_input2_val = static_cast<int32_t>(input2_val) * (1 << params.left_shift);
+  // const int32_t scaled_input1_val =
+  //     MultiplyByQuantizedMultiplierSmallerThanOneExp(
+  //         shifted_input1_val, params.input1_multiplier, params.input1_shift);
+  // const int32_t scaled_input2_val =
+  //     MultiplyByQuantizedMultiplierSmallerThanOneExp(
+  //         shifted_input2_val, params.input2_multiplier, params.input2_shift);
+  // const int32_t raw_sum = scaled_input1_val + scaled_input2_val;
+  //  const int32_t raw_output =
+  //     MultiplyByQuantizedMultiplierSmallerThanOneExp(
+  //         raw_sum, params.output_multiplier, params.output_shift) +
+  //     params.output_offset;
+  // const int32_t clamped_output =
+  //     std::min(params.quantized_activation_max,
+  //              std::max(params.quantized_activation_min, raw_output));
+
+  ///////////////////////////
+  // for X
+  uint32_t input1 = 0, input2 = 0;
+  input1 = ((input1 | static_cast<uint32_t>(params.input1_offset)) << 16);
+  input1 = ((input1 | static_cast<uint8_t>(x)) << 8);
+  input1 = (input1 | static_cast<uint8_t>(params.left_shift));
+  // input1 = params.input1_offset(16) + x(8) + params.left_shift(8)
+
+  input2 = (input2 | static_cast<uint32_t>(params.input1_multiplier)) << 8;
+  input2 = (input2 | static_cast<uint8_t>(params.input1_shift));
+  // input2 = params.input1_multiplier(24) + params.input1_shift(8)
+
+  cfu_op1(0, input1, input2);
+  ////////////////////////////
+
+  ////////////////////////////
+  // for Y
+  input1 = 0;
+  input2 = 0;
+  input1 = ((input1 | static_cast<uint32_t>(params.input2_offset)) << 16);
+  input1 = ((input1 | static_cast<uint8_t>(y)) << 8);
+  input1 = (input1 | static_cast<uint8_t>(params.left_shift));
+  // input1 = params.input2_offset(16) + y(8) + params.left_shift(8)
+
+  input2 = (input2 | static_cast<uint32_t>(params.input2_multiplier)) << 8;
+  input2 = (input2 | static_cast<uint8_t>(params.input2_shift));
+  // input2 = params.input2_multiplier(24) + params.input2_shift(8)
+
+  cfu_op1(0, input1, input2);
+  ///////////////////////////
+
+  ///////////////////////////
+  // pass params.output_multiplier and params.output_shift
+  input1 = 0;
+  input2 = 0;
+  input1 = (input1 | static_cast<uint32_t>(params.output_multiplier));
+
+  // params.output_multiplier(32)
+  input2 = (input2 | static_cast<uint32_t>(params.output_offset)) << 8;
+  input2 = (input2 | static_cast<uint8_t>(params.output_shift));
+  // params.output_offset(24) + params.output_shift(8)
+  const int32_t clamped_output = cfu_op1(1, input1, input2);
+  ///////////////////////////
+
   return static_cast<int8_t>(clamped_output);
 }
 
