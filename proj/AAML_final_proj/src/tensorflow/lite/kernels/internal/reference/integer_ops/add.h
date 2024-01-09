@@ -17,7 +17,6 @@ limitations under the License.
 
 #include <algorithm>
 #include <limits>
-#include <cstdio>
 
 #include "tensorflow/lite/kernels/internal/common.h"
 #include "tensorflow/lite/kernels/internal/types.h"
@@ -48,11 +47,7 @@ inline void ElementWise(
     void (*check_arithmetic_params)(const ArithmeticParams&),
     int8_t (*binary_func)(int8_t, int8_t, const ArithmeticParams&)) {
   CheckArithmeticParams(params);
-  int i;
-  for(i=0; i+4 < size; i+=4){
-    
-  }
-  for (; i < size; ++i) {
+  for (int i = 0; i < size; ++i) {
     output_data[i] = binary_func(input1_data[i], input2_data[i], params);
   }
 }
