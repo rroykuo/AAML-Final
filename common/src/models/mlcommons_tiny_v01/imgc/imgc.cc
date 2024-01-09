@@ -31,6 +31,7 @@
 #include "models/mlcommons_tiny_v01/imgc/test_data/quant_truck.h"
 #include "tflite.h"
 #include "tiny/v0.1/training/image_classification/trained_models/pretrainedResnet_quant.h"
+#include "models/my_cycles.h"
 
 // The imgc model classifies images based on 10 categories
 typedef struct {
@@ -92,9 +93,11 @@ static void print_imgc_result(const char* prefix,
 
 #define MLCOMMONS_TINY_V01_IMAGE_CLASSIFICATION_TEST(name, test_index) \
   static void name() {                                                 \
+    reset_my_cycles();                                                 \
     puts(#name);                                                       \
     tflite_set_input(mlcommons_tiny_v01_ic_dataset[test_index].data);  \
     print_imgc_result("  result", image_classify());                   \
+    printf("MAC: %llu\n", get_my_cycles());                            \
   }
 
 // Smattering of tests for the menu, more can be easily added/removed.

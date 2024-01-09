@@ -28,6 +28,7 @@
 #include "models/mlcommons_tiny_v01/vww/vww.h"
 #include "models/mnv2/mnv2.h"
 #include "models/pdti8/pdti8.h"
+#include "models/my_cycles.h"
 
 inline void no_menu() {}
 

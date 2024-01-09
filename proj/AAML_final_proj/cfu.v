@@ -11,17 +11,18 @@ module Cfu (
   input               clk
 );
   reg [15:0] InputOffset;
+  reg [15:0] FilterOffset;
 
   // SIMD multiply step:
   wire signed [16:0] prod_0, prod_1, prod_2, prod_3;
   assign prod_0 =  ($signed(cmd_payload_inputs_0[7 : 0]) + $signed(InputOffset))
-                  * $signed(cmd_payload_inputs_1[7 : 0]);
+                  * ($signed(cmd_payload_inputs_1[7 : 0]) + $signed(FilterOffset));
   assign prod_1 =  ($signed(cmd_payload_inputs_0[15: 8]) + $signed(InputOffset))
-                  * $signed(cmd_payload_inputs_1[15: 8]);
+                  * ($signed(cmd_payload_inputs_1[15: 8]) + $signed(FilterOffset));
   assign prod_2 =  ($signed(cmd_payload_inputs_0[23:16]) + $signed(InputOffset))
-                  * $signed(cmd_payload_inputs_1[23:16]);
+                  * ($signed(cmd_payload_inputs_1[23:16]) + $signed(FilterOffset));
   assign prod_3 =  ($signed(cmd_payload_inputs_0[31:24]) + $signed(InputOffset))
-                  * $signed(cmd_payload_inputs_1[31:24]);
+                  * ($signed(cmd_payload_inputs_1[31:24]) + $signed(FilterOffset));
 
   wire signed [31:0] sum_prods;
   assign sum_prods = prod_0 + prod_1 + prod_2 + prod_3;
@@ -34,6 +35,7 @@ module Cfu (
       rsp_payload_outputs_0 <= 32'b0;
       rsp_valid <= 1'b0;
       InputOffset <= 0;
+      FilterOffset <= 0;
     end else if (rsp_valid) begin
       // Waiting to hand off response to CPU.
       rsp_valid <= ~rsp_ready;
@@ -43,14 +45,17 @@ module Cfu (
       case (cmd_payload_function_id[9:3])
         2'b000_0000: begin
           InputOffset <= InputOffset;
+          FilterOffset <= FilterOffset;
           rsp_payload_outputs_0 <= rsp_payload_outputs_0 + sum_prods;
         end
         2'b000_0001: begin
           InputOffset <= cmd_payload_inputs_0[15:0];
+          FilterOffset <= cmd_payload_inputs_1[15:0];
           rsp_payload_outputs_0 <= 0'b0;
         end
         default: begin
           InputOffset <= InputOffset;
+          FilterOffset <= FilterOffset;
           rsp_payload_outputs_0 <= 0'b0;
         end
       endcase

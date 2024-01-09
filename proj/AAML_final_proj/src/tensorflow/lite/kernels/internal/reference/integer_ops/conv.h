@@ -90,8 +90,10 @@ inline void ConvPerChannel(
 
               // Zero padding by omitting the areas outside the image.
               const bool is_point_inside_image =
-                  (in_x >= 0) && (in_x < input_width) && (in_y >= 0) &&
-                  (in_y < input_height);
+                  (uint32_t)in_x < (uint32_t)input_width &&
+                  (uint32_t)in_y < (uint32_t)input_height;
+                  // (in_x >= 0) && (in_x < input_width) && (in_y >= 0) &&
+                  // (in_y < input_height);
 
               if (!is_point_inside_image) {
                 continue;
@@ -139,6 +141,7 @@ inline void ConvPerChannel(
           }
           acc = MultiplyByQuantizedMultiplier(
               acc, output_multiplier[out_channel], output_shift[out_channel]);
+          
           acc += output_offset;
           acc = std::max(acc, output_activation_min);
           acc = std::min(acc, output_activation_max);
